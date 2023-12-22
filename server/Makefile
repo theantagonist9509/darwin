@@ -1,28 +1,30 @@
 include config.mk
-$(TARGET_EXEC): config.mk Makefile
 
-CPPFLAGS += -Isrc $(addprefix -I,$(INC_DIRS) $(LIB_INC_DIRS)) -MMD -MP
-LDFLAGS += $(addprefix -L,$(LIB_DIRS)) $(addprefix -l,$(LIBS))
+$(TARGET_EXEC): config.mk Makefile
 
 SRCS := $(wildcard src/*.c)
 DEPS := $(SRCS:src/%.c=build/%.d)
 OBJS := $(SRCS:src/%.c=build/%.o)
 
-COMMON_OBJS := $(COMMON_SRCS:../common/src/%.c=../common/build/%.o)
+COMMON_OBJS = $(wildcard ../common/build/*.o)
 
-$(TARGET_EXEC): $(OBJS) $(COMMON_OBJS)
-	$(CC) $(LDFLAGS) $(OBJS) $(COMMON_OBJS) -o $@
+CPPFLAGS += -Isrc -I../common/src $(addprefix -I,$(INC_DIRS)) -MMD -MP
+LDFLAGS += $(addprefix -l,$(LIBS)) $(addprefix -L,$(LIB_DIRS))
+
+$(TARGET_EXEC): $(OBJS) common_objs
+	$(CC) $(OBJS) $(COMMON_OBJS) -o $@ $(LDFLAGS)
 
 build/%.o: src/%.c
-	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
+	@mkdir -p build
+	$(CC) -c $< -o $@ $(CPPFLAGS) $(CFLAGS)
 
 -include $(DEPS)
 
-$(COMMON_OBJS):
-	make -C ../common
+common_objs:
+	$(MAKE) -C ../common
 
 clean:
-	rm -f $(TARGET_EXEC) $(wildcard build/*)
-	make -C ../common clean
+	$(MAKE) -C ../common clean
+	$(RM) $(TARGET_EXEC) $(wildcard build/*)
 
-.PHONY: clean
+.PHONY: common_objs clean
